@@ -9,6 +9,7 @@ import PexesoGame from '../minigames/PexesoGame';
 import { EncyclopediaModal } from '../education/EncyclopediaModal';
 import { QuizModal } from '../education/QuizModal';
 import { MathGateModal } from './MathGateModal';
+import { soundManager } from '@/utils/audio';
 
 interface Visitor {
     id: number;
@@ -23,7 +24,8 @@ export default function Game() {
     const { money, level, xp, happiness, missions, gridRows, gridCols, gridBiomes, currentZone, addMoney, addXp, addHappiness, buyAnimal, placeAnimal, placedAnimals, completeMission, incomePerSecond, expandGrid, upgradeAnimal, changeBiome, advanceZone } = useGameStore();
     const [isShopOpen, setIsShopOpen] = useState(false);
     const [selectedAnimalToPlace, setSelectedAnimalToPlace] = useState<AnimalType | null>(null);
-    const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null); // For upgrades
+    const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null);
+    const [shopTab, setShopTab] = useState<'animals' | 'decorations'>('animals'); // Shop filter state // For upgrades
     const [isPexesoOpen, setIsPexesoOpen] = useState(false);
     const [isMathGateOpen, setIsMathGateOpen] = useState(false);
 
@@ -218,6 +220,7 @@ export default function Game() {
             if (money >= cost) {
                 const success = placeAnimal(selectedAnimalToPlace, x, y);
                 if (success) {
+                    soundManager.playPop();
                     setSelectedAnimalToPlace(null);
                 }
             } else {
@@ -397,6 +400,10 @@ export default function Game() {
                                     biome === 'path' && "bg-stone-300 border-stone-500", // Fallback color
                                     biome === 'water' && "bg-blue-400 border-blue-600",
                                     biome === 'ice' && "bg-cyan-100 border-cyan-300",
+                                    biome === 'mud' && "bg-[#8b4513] border-[#5c2e0b]",
+                                    biome === 'glacier' && "bg-blue-300 border-blue-500",
+                                    biome === 'moss' && "bg-[#556b2f] border-[#2f4f4f]",
+                                    biome === 'lava' && "bg-[#ff4500] border-[#8b0000] animate-pulse",
 
                                     selectedAnimalToPlace && !placement && "animate-pulse ring-4 ring-yellow-400",
                                     // Build Mode Highlight
@@ -404,7 +411,13 @@ export default function Game() {
                                 )
                                 }
                                 // Add background image for path if available
-                                style={biome === 'path' ? { backgroundImage: 'url(/assets/biome_path.png)', backgroundSize: 'cover' } : {}}
+                                style={{
+                                    ...(biome === 'path' ? { backgroundImage: 'url(/assets/biome_path.png)', backgroundSize: 'cover' } : {}),
+                                    ...(biome === 'mud' ? { backgroundImage: 'url(/assets/biome_mud.png)', backgroundSize: 'cover' } : {}),
+                                    ...(biome === 'glacier' ? { backgroundImage: 'url(/assets/biome_glacier.png)', backgroundSize: 'cover' } : {}),
+                                    ...(biome === 'moss' ? { backgroundImage: 'url(/assets/biome_moss.png)', backgroundSize: 'cover' } : {}),
+                                    ...(biome === 'lava' ? { backgroundImage: 'url(/assets/biome_lava.png)', backgroundSize: 'cover' } : {}),
+                                }}
                             >
                                 {/* Biome Icon/Effect */}
                                 {biome === 'water' && <Droplets className="absolute top-1 left-1 text-blue-600/30 w-6 h-6 animate-bounce" />}
@@ -513,24 +526,85 @@ export default function Game() {
             {
                 isTerrainMode && (
                     <div className="absolute bottom-32 bg-white/90 p-4 rounded-3xl shadow-xl border-4 border-purple-500 flex gap-4 animate-in slide-in-from-bottom-10 z-30">
-                        <button
-                            onClick={() => setSelectedBiomeToBuild('water')}
-                            className={clsx("flex flex-col items-center p-2 rounded-xl border-2 transition-all", selectedBiomeToBuild === 'water' ? "bg-blue-100 border-blue-500 scale-110" : "hover:bg-gray-100 border-transparent")}
-                        >
-                            <div className="w-12 h-12 bg-blue-500 rounded-lg mb-1 flex items-center justify-center text-white"><Droplets /></div>
-                            <span className="font-black text-sm text-blue-600">VODA</span>
-                            <span className="text-xs font-bold text-gray-500">5000</span>
-                        </button>
+                        {/* Zone 0/General: Water - Available in all zones */}
+                        {(currentZone >= 0) && (
+                            <button
+                                onClick={() => setSelectedBiomeToBuild('water')}
+                                className={clsx("flex flex-col items-center p-2 rounded-xl border-2 transition-all", selectedBiomeToBuild === 'water' ? "bg-blue-100 border-blue-500 scale-110" : "hover:bg-gray-100 border-transparent")}
+                            >
+                                <div className="w-12 h-12 bg-blue-500 rounded-lg mb-1 flex items-center justify-center text-white"><Droplets /></div>
+                                <span className="font-black text-sm text-blue-600">VODA</span>
+                                <span className="text-xs font-bold text-gray-500">5000</span>
+                            </button>
+                        )}
 
-                        <button
-                            onClick={() => setSelectedBiomeToBuild('ice')}
-                            className={clsx("flex flex-col items-center p-2 rounded-xl border-2 transition-all", selectedBiomeToBuild === 'ice' ? "bg-cyan-100 border-cyan-500 scale-110" : "hover:bg-gray-100 border-transparent")}
-                        >
-                            <div className="w-12 h-12 bg-cyan-200 rounded-lg mb-1 flex items-center justify-center text-white"><Snowflake /></div>
-                            <span className="font-black text-sm text-cyan-600">LED</span>
-                            <span className="text-xs font-bold text-gray-500">3000</span>
-                        </button>
+                        {/* Zone 1: Mud - Available from Savanna onwards */}
+                        {currentZone >= 1 && (
+                            <button
+                                onClick={() => setSelectedBiomeToBuild('mud')}
+                                className={clsx("flex flex-col items-center p-2 rounded-xl border-2 transition-all", selectedBiomeToBuild === 'mud' ? "bg-amber-900/20 border-amber-800 scale-110" : "hover:bg-amber-50 border-transparent")}
+                            >
+                                <div className="w-12 h-12 bg-[#8b4513] rounded-lg mb-1 flex items-center justify-center text-white font-black overflow-hidden relative">
+                                    <div className="absolute inset-0 bg-[url('/assets/biome_mud.png')] bg-cover opacity-80" />
+                                </div>
+                                <span className="font-black text-sm text-amber-900">BAHNO</span>
+                                <span className="text-xs font-bold text-gray-500">2000</span>
+                            </button>
+                        )}
 
+                        {/* Zone 2: Ice & Glacier - Available from Arctic onwards */}
+                        {currentZone >= 2 && (
+                            <>
+                                <button
+                                    onClick={() => setSelectedBiomeToBuild('ice')}
+                                    className={clsx("flex flex-col items-center p-2 rounded-xl border-2 transition-all", selectedBiomeToBuild === 'ice' ? "bg-cyan-100 border-cyan-500 scale-110" : "hover:bg-gray-100 border-transparent")}
+                                >
+                                    <div className="w-12 h-12 bg-cyan-200 rounded-lg mb-1 flex items-center justify-center text-white"><Snowflake /></div>
+                                    <span className="font-black text-sm text-cyan-600">LED</span>
+                                    <span className="text-xs font-bold text-gray-500">3000</span>
+                                </button>
+                                <button
+                                    onClick={() => setSelectedBiomeToBuild('glacier')}
+                                    className={clsx("flex flex-col items-center p-2 rounded-xl border-2 transition-all", selectedBiomeToBuild === 'glacier' ? "bg-blue-200 border-blue-600 scale-110" : "hover:bg-blue-50 border-transparent")}
+                                >
+                                    <div className="w-12 h-12 bg-blue-600 rounded-lg mb-1 flex items-center justify-center text-white font-black overflow-hidden relative">
+                                        <div className="absolute inset-0 bg-[url('/assets/biome_glacier.png')] bg-cover opacity-80" />
+                                    </div>
+                                    <span className="font-black text-sm text-blue-800">LEDOVEC</span>
+                                    <span className="text-xs font-bold text-gray-500">8000</span>
+                                </button>
+                            </>
+                        )}
+
+                        {/* Zone 3: Moss - Available from Jungle onwards */}
+                        {currentZone >= 3 && (
+                            <button
+                                onClick={() => setSelectedBiomeToBuild('moss')}
+                                className={clsx("flex flex-col items-center p-2 rounded-xl border-2 transition-all", selectedBiomeToBuild === 'moss' ? "bg-green-800/20 border-green-800 scale-110" : "hover:bg-green-50 border-transparent")}
+                            >
+                                <div className="w-12 h-12 bg-[#556b2f] rounded-lg mb-1 flex items-center justify-center text-white font-black overflow-hidden relative">
+                                    <div className="absolute inset-0 bg-[url('/assets/biome_moss.png')] bg-cover opacity-80" />
+                                </div>
+                                <span className="font-black text-sm text-green-900">MECH</span>
+                                <span className="text-xs font-bold text-gray-500">15000</span>
+                            </button>
+                        )}
+
+                        {/* Zone 4: Lava - Available from Volcano onwards */}
+                        {currentZone >= 4 && (
+                            <button
+                                onClick={() => setSelectedBiomeToBuild('lava')}
+                                className={clsx("flex flex-col items-center p-2 rounded-xl border-2 transition-all", selectedBiomeToBuild === 'lava' ? "bg-red-900/20 border-red-800 scale-110" : "hover:bg-red-50 border-transparent")}
+                            >
+                                <div className="w-12 h-12 bg-[#ff4500] rounded-lg mb-1 flex items-center justify-center text-white font-black overflow-hidden relative">
+                                    <div className="absolute inset-0 bg-[url('/assets/biome_lava.png')] bg-cover opacity-80" />
+                                </div>
+                                <span className="font-black text-sm text-red-900">LÁVA</span>
+                                <span className="text-xs font-bold text-gray-500">50000</span>
+                            </button>
+                        )}
+
+                        {/* Always visible Path */}
                         <button
                             onClick={() => setSelectedBiomeToBuild('path')}
                             className={clsx("flex flex-col items-center p-2 rounded-xl border-2 transition-all", selectedBiomeToBuild === 'path' ? "bg-stone-100 border-stone-500 scale-110" : "hover:bg-gray-100 border-transparent")}
@@ -566,55 +640,82 @@ export default function Game() {
                 isShopOpen && (
                     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                         <div className="bg-zoo-offwhite w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border-8 border-zoo-blue animate-in fade-in zoom-in duration-300">
-                            <div className="bg-zoo-blue p-4 flex justify-between items-center">
-                                <h2 className="text-3xl font-black text-white">OBCHOD ZVÍŘÁTEK</h2>
-                                <button onClick={() => setIsShopOpen(false)} className="bg-white/20 hover:bg-white/40 p-2 rounded-full text-white">
-                                    <X size={32} />
-                                </button>
+                            <div className="bg-zoo-blue p-4">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-3xl font-black text-white">OBCHOD</h2>
+                                    <button onClick={() => setIsShopOpen(false)} className="bg-white/20 hover:bg-white/40 p-2 rounded-full text-white">
+                                        <X size={32} />
+                                    </button>
+                                </div>
+
+                                {/* Tabs */}
+                                <div className="flex gap-2 bg-zoo-dark-blue p-1 rounded-xl">
+                                    <button
+                                        onClick={() => setShopTab('animals')}
+                                        className={clsx(
+                                            "flex-1 py-2 font-black rounded-lg transition-all",
+                                            shopTab === 'animals' ? "bg-white text-zoo-blue shadow-sm" : "text-white/70 hover:bg-white/10"
+                                        )}
+                                    >
+                                        ZVÍŘATA
+                                    </button>
+                                    <button
+                                        onClick={() => setShopTab('decorations')}
+                                        className={clsx(
+                                            "flex-1 py-2 font-black rounded-lg transition-all",
+                                            shopTab === 'decorations' ? "bg-white text-zoo-blue shadow-sm" : "text-white/70 hover:bg-white/10"
+                                        )}
+                                    >
+                                        VÝZDOBA
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="p-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                {Object.values(ANIMALS).map((animal) => {
-                                    const isLocked = level < animal.unlockLevel;
-                                    const canAfford = money >= animal.cost;
+                            <div className="p-6 grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
+                                {Object.values(ANIMALS)
+                                    .filter(a => a.zoneId <= currentZone)
+                                    .filter(a => shopTab === 'decorations' ? a.isDecoration : !a.isDecoration)
+                                    .map((animal) => {
+                                        const isLocked = level < animal.unlockLevel;
+                                        const canAfford = money >= animal.cost;
 
-                                    return (
-                                        <button
-                                            key={animal.id}
-                                            onClick={() => {
-                                                if (isLocked) return;
-                                                setIsShopOpen(false);
-                                                setSelectedAnimalToPlace(animal.type);
-                                            }}
-                                            disabled={!canAfford || isLocked}
-                                            className={clsx(
-                                                "relative flex flex-col items-center p-4 rounded-2xl border-4 transition-all group overflow-hidden",
-                                                !isLocked && canAfford
-                                                    ? "bg-white border-zoo-blue/20 hover:border-zoo-blue hover:scale-105 shadow-cartoon hover:shadow-cartoon-hover"
-                                                    : "bg-gray-200 border-gray-300 opacity-80 cursor-not-allowed"
-                                            )}
-                                        >
-                                            {isLocked && (
-                                                <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center z-10 text-white backdrop-blur-[1px]">
-                                                    <Lock size={40} className="mb-1" />
-                                                    <span className="font-black text-lg">LEVEL {animal.unlockLevel}</span>
+                                        return (
+                                            <button
+                                                key={animal.id}
+                                                onClick={() => {
+                                                    if (isLocked) return;
+                                                    setIsShopOpen(false);
+                                                    setSelectedAnimalToPlace(animal.type);
+                                                }}
+                                                disabled={!canAfford || isLocked}
+                                                className={clsx(
+                                                    "relative flex flex-col items-center p-4 rounded-2xl border-4 transition-all group overflow-hidden",
+                                                    !isLocked && canAfford
+                                                        ? "bg-white border-zoo-blue/20 hover:border-zoo-blue hover:scale-105 shadow-cartoon hover:shadow-cartoon-hover"
+                                                        : "bg-gray-200 border-gray-300 opacity-80 cursor-not-allowed"
+                                                )}
+                                            >
+                                                {isLocked && (
+                                                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center z-10 text-white backdrop-blur-[1px]">
+                                                        <Lock size={40} className="mb-1" />
+                                                        <span className="font-black text-lg">LEVEL {animal.unlockLevel}</span>
+                                                    </div>
+                                                )}
+
+                                                <Image src={animal.imageUrl} alt={animal.name} width={80} height={80} className="mb-2 object-contain" />
+                                                <h3 className="font-bold text-xl text-zoo-text">{animal.name}</h3>
+                                                <div className="flex items-center gap-1 mt-1 bg-yellow-100 px-3 py-1 rounded-full border border-yellow-300">
+                                                    <Image src="/assets/coin.png" alt="coin" width={16} height={16} />
+                                                    <span className={clsx("font-black", canAfford ? "text-zoo-orange" : "text-red-500")}>
+                                                        {animal.cost}
+                                                    </span>
                                                 </div>
-                                            )}
-
-                                            <Image src={animal.imageUrl} alt={animal.name} width={80} height={80} className="mb-2 object-contain" />
-                                            <h3 className="font-bold text-xl text-zoo-text">{animal.name}</h3>
-                                            <div className="flex items-center gap-1 mt-1 bg-yellow-100 px-3 py-1 rounded-full border border-yellow-300">
-                                                <Image src="/assets/coin.png" alt="coin" width={16} height={16} />
-                                                <span className={clsx("font-black", canAfford ? "text-zoo-orange" : "text-red-500")}>
-                                                    {animal.cost}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-1 mt-1 text-xs font-bold text-gray-500">
-                                                {animal.isDecoration ? "DEKORACE" : `+${animal.incomeRate}/s`}
-                                            </div>
-                                        </button>
-                                    )
-                                })}
+                                                <div className="flex items-center gap-1 mt-1 text-xs font-bold text-gray-500">
+                                                    {animal.isDecoration ? "DEKORACE" : `+${animal.incomeRate}/s`}
+                                                </div>
+                                            </button>
+                                        )
+                                    })}
                             </div>
                         </div>
                     </div>

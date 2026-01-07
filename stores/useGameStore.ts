@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type AnimalType = 'dog' | 'cat' | 'elephant' | 'lion' | 'penguin' | 'shark' | 'polar_bear' | 'fountain' | 'tree';
-export type BiomeType = 'grass' | 'water' | 'ice' | 'path';
+export type AnimalType = 'dog' | 'cat' | 'penguin' | 'elephant' | 'lion' | 'shark' | 'polar_bear' | 'tree' | 'fountain' | 'giraffe' | 'zebra' | 'seal' | 'walrus' | 'monkey' | 'tiger' | 'phoenix' | 'dragon';
+export type BiomeType = 'grass' | 'water' | 'ice' | 'path' | 'mud' | 'glacier' | 'moss' | 'lava';
 
 export interface Zone {
     id: number;
@@ -17,6 +17,8 @@ export const ZONES: Zone[] = [
     { id: 0, name: 'Louka', costMultiplier: 1, incomeMultiplier: 1, unlockCost: 0 },
     { id: 1, name: 'Savana', textureUrl: '/assets/bg_savanna.png', costMultiplier: 1.5, incomeMultiplier: 1.5, unlockCost: 500000 },
     { id: 2, name: 'Arktida', textureUrl: '/assets/bg_arctic.png', costMultiplier: 2.5, incomeMultiplier: 3.0, unlockCost: 2500000 },
+    { id: 3, name: 'Džungle', textureUrl: '/assets/bg_jungle.png', costMultiplier: 4.0, incomeMultiplier: 5.0, unlockCost: 10000000 },
+    { id: 4, name: 'Vulkán', textureUrl: '/assets/bg_volcano.png', costMultiplier: 8.0, incomeMultiplier: 10.0, unlockCost: 50000000 },
 ];
 
 export interface Animal {
@@ -29,6 +31,7 @@ export interface Animal {
     unlockLevel: number;
     xpReward: number;
     requiredBiome?: BiomeType;
+    zoneId: number;
     isDecoration?: boolean;
     // Educational Data
     funFact?: string;
@@ -37,9 +40,9 @@ export interface Animal {
 }
 
 export const ANIMALS: Record<AnimalType, Animal> = {
-    // Basic
+    // Zone 0: Meadow
     dog: {
-        id: 'dog', type: 'dog', name: 'Pejsek', cost: 100, incomeRate: 1, imageUrl: '/assets/dog.png', unlockLevel: 1, xpReward: 20,
+        id: 'dog', type: 'dog', name: 'Pejsek', cost: 100, incomeRate: 1, imageUrl: '/assets/animal_dog.png', unlockLevel: 1, xpReward: 20, zoneId: 0,
         funFact: 'Psi mají čich 10 000x lepší než lidé!', diet: 'omnivore',
         quizQuestions: [
             { question: 'Co dělají psi, když jsou šťastní?', options: ['Vrtí ocasem', 'Mňoukají', 'Létají'], correctAnswer: 0 },
@@ -47,63 +50,130 @@ export const ANIMALS: Record<AnimalType, Animal> = {
         ]
     },
     cat: {
-        id: 'cat', type: 'cat', name: 'Kočička', cost: 150, incomeRate: 2, imageUrl: '/assets/cat.png', unlockLevel: 1, xpReward: 30,
+        id: 'cat', type: 'cat', name: 'Kočička', cost: 150, incomeRate: 2, imageUrl: '/assets/animal_cat.png', unlockLevel: 1, xpReward: 30, zoneId: 0,
         funFact: 'Kočky spí až 16 hodin denně!', diet: 'carnivore',
         quizQuestions: [
             { question: 'Co kočky milují?', options: ['Vodu', 'Spánek a myši', 'Brokolici'], correctAnswer: 1 },
             { question: 'Vidí kočky dobře ve tmě?', options: ['Ano', 'Ne', 'Jen v úterý'], correctAnswer: 0 }
         ]
     },
-    penguin: {
-        id: 'penguin', type: 'penguin', name: 'Tučňák', cost: 300, incomeRate: 5, imageUrl: '/assets/penguin.png', unlockLevel: 2, xpReward: 60,
-        funFact: 'Tučňáci neumí létat, ale skvěle plavou.', diet: 'carnivore',
-        quizQuestions: [
-            { question: 'Kde žijí tučňáci?', options: ['Na poušti', 'Na jižním pólu', 'V lese'], correctAnswer: 1 },
-            { question: 'Čím se živí tučňák?', options: ['Ryby', 'Banány', 'Tráva'], correctAnswer: 0 }
-        ]
+    tree: {
+        id: 'tree', type: 'tree', name: 'Strom', cost: 50, incomeRate: 0, imageUrl: '/assets/prop_tree.png', unlockLevel: 2, xpReward: 50, isDecoration: true, zoneId: 0
     },
-    elephant: {
-        id: 'elephant', type: 'elephant', name: 'Slon', cost: 500, incomeRate: 8, imageUrl: '/assets/elephant.png', unlockLevel: 3, xpReward: 100,
-        funFact: 'Slon má výbornou paměť a nikdy nezapomíná.', diet: 'herbivore',
-        quizQuestions: [
-            { question: 'Čím nabírâ slon vodu?', options: ['Ocasem', 'Chobotem', 'Uchem'], correctAnswer: 1 },
-            { question: 'Jaké je slon zvíře?', options: ['Největší suchozemské', 'Nejmenší na světě', 'Mořské'], correctAnswer: 0 }
-        ]
+    fountain: {
+        id: 'fountain', type: 'fountain', name: 'Fontána', cost: 2000, incomeRate: 0, imageUrl: '/assets/prop_fountain.png', unlockLevel: 4, xpReward: 100, isDecoration: true, zoneId: 0
     },
-    lion: {
-        id: 'lion', type: 'lion', name: 'Lev', cost: 800, incomeRate: 12, imageUrl: '/assets/lion.png', unlockLevel: 5, xpReward: 200,
-        funFact: 'Lví řev je slyšet až na 8 kilometrů!', diet: 'carnivore',
-        quizQuestions: [
-            { question: 'Jak se říká lvi?', options: ['Král džungle', 'Pan lesa', 'Vládce moří'], correctAnswer: 0 },
-            { question: 'Kdo loví potravu pro smečku?', options: ['Lev (samec)', 'Lvice (samice)', 'Lvíčata'], correctAnswer: 1 }
-        ]
-    },
-
-    // Legendary / Biome Specific
     shark: {
-        id: 'shark', type: 'shark', name: 'Žralok', cost: 10000, incomeRate: 100, imageUrl: '/assets/shark.png', unlockLevel: 8, xpReward: 1000, requiredBiome: 'water',
+        id: 'shark', type: 'shark', name: 'Žralok', cost: 10000, incomeRate: 100, imageUrl: '/assets/animal_shark.png', unlockLevel: 8, xpReward: 1000, requiredBiome: 'water', zoneId: 0,
         funFact: 'Žraloci nemají kosti, jejich kostra je z chrupavky.', diet: 'carnivore',
         quizQuestions: [
             { question: 'Kde žije žralok?', options: ['V řece', 'V oceánu', 'Na stromě'], correctAnswer: 1 },
             { question: 'Má žralok zuby?', options: ['Ne, žádné', 'Ano, spoustu', 'Jen jeden'], correctAnswer: 1 }
         ]
     },
+
+    // Zone 1: Savanna (Lev, Slon moved here, + Giraffe, Zebra)
+    lion: {
+        id: 'lion', type: 'lion', name: 'Lev', cost: 1000, incomeRate: 12, imageUrl: '/assets/animal_lion.png', unlockLevel: 5, xpReward: 200, zoneId: 1,
+        funFact: 'Lví řev je slyšet až na 8 kilometrů!', diet: 'carnivore',
+        quizQuestions: [
+            { question: 'Jak se říká lvi?', options: ['Král džungle', 'Pan lesa', 'Vládce moří'], correctAnswer: 0 },
+            { question: 'Kdo loví potravu pro smečku?', options: ['Lev (samec)', 'Lvice (samice)', 'Lvíčata'], correctAnswer: 1 }
+        ]
+    },
+    elephant: {
+        id: 'elephant', type: 'elephant', name: 'Slon', cost: 1500, incomeRate: 15, imageUrl: '/assets/animal_elephant.png', unlockLevel: 3, xpReward: 100, requiredBiome: 'mud', zoneId: 1,
+        funFact: 'Slon má výbornou paměť a nikdy nezapomíná.', diet: 'herbivore',
+        quizQuestions: [
+            { question: 'Čím nabírâ slon vodu?', options: ['Ocasem', 'Chobotem', 'Uchem'], correctAnswer: 1 },
+            { question: 'Jaké je slon zvíře?', options: ['Největší suchozemské', 'Nejmenší na světě', 'Mořské'], correctAnswer: 0 }
+        ]
+    },
+    giraffe: {
+        id: 'giraffe', type: 'giraffe', name: 'Žirafa', cost: 1200, incomeRate: 10, imageUrl: '/assets/animal_giraffe.png', unlockLevel: 2, xpReward: 80, zoneId: 1,
+        funFact: 'Žirafa má stejně krčních obratlů jako člověk (7), ale obrovských!', diet: 'herbivore',
+        quizQuestions: [
+            { question: 'Co má žirafa dlouhé?', options: ['Krk', 'Uši', 'Nos'], correctAnswer: 0 },
+            { question: 'Jak spí žirafa?', options: ['Ve stoje', 'V hnízdě', 'Pod vodou'], correctAnswer: 0 }
+        ]
+    },
+    zebra: {
+        id: 'zebra', type: 'zebra', name: 'Zebra', cost: 900, incomeRate: 8, imageUrl: '/assets/animal_zebra.png', unlockLevel: 2, xpReward: 70, zoneId: 1,
+        funFact: 'Každá zebra má unikátní pruhy, jako otisky prstů.', diet: 'herbivore',
+        quizQuestions: [
+            { question: 'Jakou barvu má zebra?', options: ['Modrou', 'Černo-bílou', 'Zelenou'], correctAnswer: 1 },
+            { question: 'Kde žijí zebry?', options: ['V Africe', 'Na severním pólu', 'V rybníku'], correctAnswer: 0 }
+        ]
+    },
+
+    // Zone 2: Arctic (Penguin, Polar Bear moved here, + Seal, Walrus)
+    penguin: {
+        id: 'penguin', type: 'penguin', name: 'Tučňák', cost: 2500, incomeRate: 20, imageUrl: '/assets/animal_penguin.png', unlockLevel: 2, xpReward: 60, requiredBiome: 'ice', zoneId: 2,
+        funFact: 'Tučňáci neumí létat, ale skvěle plavou.', diet: 'carnivore',
+        quizQuestions: [
+            { question: 'Kde žijí tučňáci?', options: ['Na poušti', 'Na jižním pólu', 'V lese'], correctAnswer: 1 },
+            { question: 'Čím se živí tučňák?', options: ['Ryby', 'Banány', 'Tráva'], correctAnswer: 0 }
+        ]
+    },
     polar_bear: {
-        id: 'polar_bear', type: 'polar_bear', name: 'Lední Medvěd', cost: 7500, incomeRate: 80, imageUrl: '/assets/polar_bear.png', unlockLevel: 7, xpReward: 800, requiredBiome: 'ice',
+        id: 'polar_bear', type: 'polar_bear', name: 'Lední Medvěd', cost: 7500, incomeRate: 80, imageUrl: '/assets/animal_polar_bear.png', unlockLevel: 7, xpReward: 800, requiredBiome: 'ice', zoneId: 2,
         funFact: 'Pod bílým kožichem má lední medvěd černou kůži!', diet: 'carnivore',
         quizQuestions: [
             { question: 'Jakou barvu má kůže ledního medvěda?', options: ['Bílou', 'Černou', 'Růžovou'], correctAnswer: 1 },
             { question: 'Je lední medvěd dobrý plavec?', options: ['Ano, výborný', 'Ne, bojí se vody', 'Neumí plavat'], correctAnswer: 0 }
         ]
     },
-
-    // Decorations
-    fountain: {
-        id: 'fountain', type: 'fountain', name: 'Fontána', cost: 2000, incomeRate: 0, imageUrl: '/assets/fountain.png', unlockLevel: 4, xpReward: 100, isDecoration: true
+    seal: {
+        id: 'seal', type: 'seal', name: 'Tuleň', cost: 2800, incomeRate: 25, imageUrl: '/assets/animal_seal.png', unlockLevel: 6, xpReward: 150, requiredBiome: 'ice', zoneId: 2,
+        funFact: 'Tuleni dokáží zadržet dech až na 2 hodiny!', diet: 'carnivore',
+        quizQuestions: [
+            { question: 'Co dělají tuleni na ledu?', options: ['Hrají fotbal', 'Odpočívají', 'Pečou cukroví'], correctAnswer: 1 }
+        ]
     },
-    tree: {
-        id: 'tree', type: 'tree', name: 'Strom', cost: 500, incomeRate: 0, imageUrl: '/assets/tree.png', unlockLevel: 2, xpReward: 50, isDecoration: true
+    walrus: {
+        id: 'walrus', type: 'walrus', name: 'Mrož', cost: 8000, incomeRate: 90, imageUrl: '/assets/animal_walrus.png', unlockLevel: 8, xpReward: 900, requiredBiome: 'glacier', zoneId: 2,
+        funFact: 'Mroží kly jsou vlastně prodloužené zuby.', diet: 'carnivore',
+        quizQuestions: [
+            { question: 'Co má mrož velkého?', options: ['Uši', 'Kly', 'Ocas'], correctAnswer: 1 }
+        ]
+    },
+
+    // Zone 3: Jungle
+    monkey: {
+        id: 'monkey', type: 'monkey', name: 'Opice', cost: 15000, incomeRate: 200, imageUrl: '/assets/animal_monkey.png', unlockLevel: 10, xpReward: 1500, zoneId: 3,
+        funFact: 'Některé opice si myjí ovoce, než ho sní!', diet: 'omnivore',
+        quizQuestions: [
+            { question: 'Co jedí opice?', options: ['Jen maso', 'Jen kameny', 'Banány a ovoce'], correctAnswer: 2 },
+            { question: 'Kde žije většina opic?', options: ['Na stromech', 'V podzemí', 'V moři'], correctAnswer: 0 }
+        ]
+    },
+    tiger: {
+        id: 'tiger', type: 'tiger', name: 'Tygr', cost: 40000, incomeRate: 500, imageUrl: '/assets/animal_tiger.png', unlockLevel: 12, xpReward: 3000, requiredBiome: 'moss', zoneId: 3,
+        funFact: 'Tygr má pruhovanou i kůži pod srstí!', diet: 'carnivore',
+        quizQuestions: [
+            { question: 'Je tygr samotář?', options: ['Ano', 'Ne, žije ve smečce', 'Žije s lvy'], correctAnswer: 0 },
+            { question: 'Umí tygr plavat?', options: ['Ne', 'Ano, miluje vodu', 'Bojí se vody'], correctAnswer: 1 }
+        ]
+    },
+
+    // Zone 4: Volcano
+    phoenix: {
+        id: 'phoenix', type: 'phoenix', name: 'Fénix', cost: 200000, incomeRate: 2500, imageUrl: '/assets/animal_phoenix.png', unlockLevel: 15, xpReward: 10000, requiredBiome: 'lava', zoneId: 4,
+        funFact: 'Fénix se podle legendy rodí znovu ze svého popela.', diet: 'omnivore',
+        quizQuestions: [
+            { question: 'Z čeho se rodí Fénix?', options: ['Vejce', 'Popel', 'Kámen'], correctAnswer: 1 },
+            { question: 'Jakou barvu má Fénix?', options: ['Ohnivou', 'Modrou', 'Zelenou'], correctAnswer: 0 }
+        ]
+    },
+    dragon: {
+        id: 'dragon', type: 'dragon', name: 'Drak', cost: 1000000, incomeRate: 15000, imageUrl: '/assets/animal_dragon.png', unlockLevel: 20, xpReward: 50000, requiredBiome: 'lava', zoneId: 4,
+        funFact: 'Draci v pohádkách často chrání poklad.', diet: 'carnivore',
+        quizQuestions: [
+            { question: 'Co chrlí drak?', options: ['Vodu', 'Oheň', 'Bubliny'], correctAnswer: 1 },
+            { question: 'Má drak křídla?', options: ['Ne', 'Ano', 'Jen někdy'], correctAnswer: 1 }
+        ]
     }
+
 };
 
 export interface PlacedAnimal {
@@ -355,7 +425,14 @@ export const useGameStore = create<GameState>()(
 
             changeBiome: (x, y, biome) => {
                 const state = get();
-                const cost = biome === 'water' ? 5000 : (biome === 'ice' ? 3000 : (biome === 'path' ? 100 : 0));
+                const cost =
+                    biome === 'water' ? 5000 :
+                        biome === 'ice' ? 3000 :
+                            biome === 'mud' ? 2000 :
+                                biome === 'glacier' ? 8000 :
+                                    biome === 'moss' ? 15000 :
+                                        biome === 'lava' ? 50000 :
+                                            biome === 'path' ? 100 : 0;
 
                 if (state.money >= cost) {
                     // Can't replace if occupied by animal (unless it's just path/grass swap and animal allows it?)
