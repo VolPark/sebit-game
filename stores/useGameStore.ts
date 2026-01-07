@@ -4,6 +4,21 @@ import { persist } from 'zustand/middleware';
 export type AnimalType = 'dog' | 'cat' | 'elephant' | 'lion' | 'penguin' | 'shark' | 'polar_bear' | 'fountain' | 'tree';
 export type BiomeType = 'grass' | 'water' | 'ice' | 'path';
 
+export interface Zone {
+    id: number;
+    name: string;
+    textureUrl?: string; // e.g. /assets/bg_savanna.png
+    costMultiplier: number; // e.g. 1.5x prices
+    incomeMultiplier: number; // e.g. 2x income
+    unlockCost: number;
+}
+
+export const ZONES: Zone[] = [
+    { id: 0, name: 'Louka', costMultiplier: 1, incomeMultiplier: 1, unlockCost: 0 },
+    { id: 1, name: 'Savana', textureUrl: '/assets/bg_savanna.png', costMultiplier: 1.5, incomeMultiplier: 1.5, unlockCost: 500000 },
+    { id: 2, name: 'Arktida', textureUrl: '/assets/bg_arctic.png', costMultiplier: 2.5, incomeMultiplier: 3.0, unlockCost: 2500000 },
+];
+
 export interface Animal {
     id: string;
     type: AnimalType;
@@ -120,10 +135,11 @@ interface GameState {
     level: number;
     xp: number;
     happiness: number;
+    currentZone: number; // New State
     gridRows: number;
-    gridCols: number; // New: Horizontal expansion
+    gridCols: number;
     placedAnimals: PlacedAnimal[];
-    gridBiomes: Record<string, BiomeType>; // New: Store biome data "x,y" -> 'water'
+    gridBiomes: Record<string, BiomeType>;
     missions: Mission[];
 
     // Actions
@@ -131,12 +147,13 @@ interface GameState {
     addXp: (amount: number) => void;
     addHappiness: (amount: number) => void;
     buyAnimal: (type: AnimalType) => boolean;
-    placeAnimal: (type: AnimalType, x: number, y: number) => boolean; // Changed to boolean
+    placeAnimal: (type: AnimalType, x: number, y: number) => boolean;
     completeMission: (missionId: string) => void;
 
-    expandGrid: (direction: 'row' | 'col') => boolean; // Updated signature
+    expandGrid: (direction: 'row' | 'col') => boolean;
     upgradeAnimal: (placementId: string) => boolean;
-    changeBiome: (x: number, y: number, biome: BiomeType) => boolean; // New Action
+    changeBiome: (x: number, y: number, biome: BiomeType) => boolean;
+    advanceZone: () => boolean; // New Action
 
     // Computed
     incomePerSecond: () => number;
@@ -149,8 +166,8 @@ export const useGameStore = create<GameState>()(
             level: 1,
             xp: 0,
             happiness: 0,
+            currentZone: 0, // Default to Zone 0
             gridRows: 5,
-
             gridCols: 6,
             placedAnimals: [],
             gridBiomes: {}, // Default is empty (grass)
@@ -170,9 +187,46 @@ export const useGameStore = create<GameState>()(
                 return { xp: nextXp };
             }),
 
-            buyAnimal: (type) => {
+            incomePerSecond: () => {
                 const state = get();
-                const cost = ANIMALS[type].cost;
+                // Apply Zone Multiplier to Total Income
+                const baseIncome = state.placedAnimals.reduce((total, placement) => {
+                    const animal = ANIMALS[placement.animalType];
+                    return total + (animal.incomeRate * (placement.level || 1));
+                }, 0);
+
+                const zoneMultiplier = ZONES[state.currentZone].incomeMultiplier;
+                return Math.floor(baseIncome * zoneMultiplier);
+            },
+
+            // New: Advance Zone (Prestige)
+            advanceZone: () => {
+                const state = get();
+                const nextZoneIdx = state.currentZone + 1;
+                if (nextZoneIdx >= ZONES.length) return false;
+
+                const nextZone = ZONES[nextZoneIdx];
+                if (state.money >= nextZone.unlockCost) {
+                    set({
+                        currentZone: nextZoneIdx,
+                        money: state.money - nextZone.unlockCost,
+                        // RESET GRID for new zone (Prestige feeling)
+                        gridRows: 5,
+                        gridCols: 6,
+                        placedAnimals: [],
+                        gridBiomes: {},
+                        // Keep Level, XP, Happiness? Usually yes.
+                    });
+                    return true;
+                }
+                return false;
+            },
+
+            buyAnimal: (type) => { // Modified for Zone Cost
+                const state = get();
+                const zone = ZONES[state.currentZone];
+                const cost = Math.floor(ANIMALS[type].cost * zone.costMultiplier);
+
                 if (state.money >= cost && state.level >= ANIMALS[type].unlockLevel) {
                     // Money is NOT deducted here anymore, it's deducted in placeAnimal
                     // Wait, if I change this, I must verify Game.tsx logic.
@@ -191,6 +245,11 @@ export const useGameStore = create<GameState>()(
             placeAnimal: (type, x, y) => {
                 const state = get();
                 const animal = ANIMALS[type];
+                const zone = ZONES[state.currentZone];
+                const finalCost = Math.floor(animal.cost * zone.costMultiplier);
+
+                // Check again for safety
+                if (state.money < finalCost) return false;
 
                 // Check Biome
                 const biome = state.gridBiomes[`${x},${y}`] || 'grass';
@@ -212,7 +271,7 @@ export const useGameStore = create<GameState>()(
                     });
 
                     return {
-                        money: prev.money - ANIMALS[type].cost,
+                        money: prev.money - finalCost, // Deduct Scaled Cost
                         placedAnimals: [...prev.placedAnimals, {
                             id: Math.random().toString(36).substr(2, 9),
                             animalType: type,
@@ -254,11 +313,18 @@ export const useGameStore = create<GameState>()(
                 const state = get();
                 const cost = (state.gridRows + state.gridCols) * 500; // Cheaper cost formula
                 if (state.money >= cost) {
-                    if (direction === 'row') {
-                        set({ money: state.money - cost, gridRows: state.gridRows + 1 });
-                    } else {
-                        set({ money: state.money - cost, gridCols: state.gridCols + 1 });
-                    }
+                    // Scale cost by zone? No, grid expansion usually fixed or maybe slightly scaled. 
+                    // Let's keep grid expansion fixed for now or minimal scaling.
+                    const zone = ZONES[state.currentZone];
+                    const scaledCost = Math.floor(cost * zone.costMultiplier);
+
+                    if (state.money < scaledCost) return false;
+
+                    set((prev) => ({
+                        money: prev.money - scaledCost,
+                        gridRows: direction === 'row' ? prev.gridRows + 1 : prev.gridRows,
+                        gridCols: direction === 'col' ? prev.gridCols + 1 : prev.gridCols
+                    }));
                     return true;
                 }
                 return false;
@@ -310,19 +376,17 @@ export const useGameStore = create<GameState>()(
                 return false;
             },
 
-            incomePerSecond: () => {
-                const state = get();
-                return state.placedAnimals.reduce((total, placement) => {
-                    const baseRate = ANIMALS[placement.animalType].incomeRate;
-                    // Decor has 0 rate so it adds nothing
-                    const levelMultiplier = placement.level || 1;
-                    return total + (baseRate * levelMultiplier);
-                }, 0);
-            },
+
         }),
         {
             name: 'zoo-game-storage',
-            version: 2, // Bump version if adding biome state
+            version: 3, // Bump for Zone Progression
+            migrate: (persistedState: any, version) => {
+                if (version < 3) {
+                    return { ...persistedState, currentZone: 0 };
+                }
+                return persistedState;
+            },
         }
     )
 );

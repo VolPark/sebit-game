@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { useGameStore, ANIMALS, AnimalType, BiomeType } from '@/stores/useGameStore';
+import { useGameStore, ANIMALS, AnimalType, BiomeType, ZONES } from '@/stores/useGameStore';
 import Image from 'next/image';
 import { PawPrint, X, Plus, Lock, ArrowUpCircle, Gamepad2, Droplets, Snowflake, BookOpen, GraduationCap, ArrowRight, ArrowDown } from 'lucide-react';
 import clsx from 'clsx';
 import PexesoGame from '../minigames/PexesoGame';
 import { EncyclopediaModal } from '../education/EncyclopediaModal';
 import { QuizModal } from '../education/QuizModal';
+import { MathGateModal } from './MathGateModal';
 
 interface Visitor {
     id: number;
@@ -19,11 +20,12 @@ interface Visitor {
 }
 
 export default function Game() {
-    const { money, level, xp, happiness, missions, gridRows, gridCols, gridBiomes, addMoney, addXp, addHappiness, buyAnimal, placeAnimal, placedAnimals, completeMission, incomePerSecond, expandGrid, upgradeAnimal, changeBiome } = useGameStore();
+    const { money, level, xp, happiness, missions, gridRows, gridCols, gridBiomes, currentZone, addMoney, addXp, addHappiness, buyAnimal, placeAnimal, placedAnimals, completeMission, incomePerSecond, expandGrid, upgradeAnimal, changeBiome, advanceZone } = useGameStore();
     const [isShopOpen, setIsShopOpen] = useState(false);
     const [selectedAnimalToPlace, setSelectedAnimalToPlace] = useState<AnimalType | null>(null);
     const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null); // For upgrades
     const [isPexesoOpen, setIsPexesoOpen] = useState(false);
+    const [isMathGateOpen, setIsMathGateOpen] = useState(false);
 
     // New Features State
     const [isEncyclopediaOpen, setIsEncyclopediaOpen] = useState(false);
@@ -246,12 +248,19 @@ export default function Game() {
         placedAnimals.find(p => p.id === selectedPlacementId),
         [selectedPlacementId, placedAnimals]);
 
+    const zoneTexture = ZONES[currentZone]?.textureUrl;
+
     if (!isMounted) return null;
 
     return (
         <div className="relative w-full h-screen bg-zoo-green overflow-hidden flex flex-col items-center">
+            {/* Background Layer with Transition */}
+            <div
+                className="absolute inset-0 z-0 transition-all duration-1000"
+                style={zoneTexture ? { backgroundImage: `url(${zoneTexture})`, backgroundSize: '256px' } : {}}
+            />
             {/* HUD */}
-            <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
+            <div className="absolute top-4 left-4 z-50 flex flex-col gap-2 pointer-events-auto">
                 <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full border border-white/30 backdrop-blur-sm shadow-sm">
                     <Image src="/assets/coin.png" alt="coin" width={32} height={32} className="drop-shadow-md" />
                     <span className="font-black text-2xl text-yellow-300 drop-shadow-md min-w-[3ch]">{Math.floor(money)}</span>
@@ -276,42 +285,54 @@ export default function Game() {
                         </div>
                     </div>
                 </div>
+                {/* Next Zone Trigger */}
+                {currentZone < ZONES.length - 1 && (
+                    <button
+                        onClick={() => setIsMathGateOpen(true)}
+                        className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-full font-black border-2 border-indigo-300 shadow-cartoon transition-transform hover:scale-105 active:scale-95 animate-pulse mt-1"
+                    >
+                        <ArrowUpCircle size={24} />
+                        DALŠÍ SVĚT
+                    </button>
+                )}
             </div>
 
             {/* Mission / Ryder's Call */}
-            {activeMission && (
-                <div className={clsx(
-                    "absolute top-4 right-4 z-20 flex flex-col items-end transition-all duration-500",
-                    activeMission.isCompleted ? "scale-110" : "scale-100"
-                )}>
+            {
+                activeMission && (
                     <div className={clsx(
-                        "relative bg-white border-4 rounded-3xl p-4 shadow-xl max-w-[200px]",
-                        activeMission.isCompleted ? "border-zoo-yellow animate-bounce-short" : "border-zoo-blue"
+                        "absolute top-4 right-4 z-20 flex flex-col items-end transition-all duration-500",
+                        activeMission.isCompleted ? "scale-110" : "scale-100"
                     )}>
-                        <div className="absolute -top-4 -left-4 w-12 h-12 bg-zoo-blue rounded-full border-4 border-white flex items-center justify-center text-white font-black shadow-md">
-                            R
-                        </div>
-                        <h3 className="font-black text-zoo-blue ml-6 text-sm uppercase">RYDER VOLÁ!</h3>
-                        <p className="font-bold text-sm leading-tight mt-1 text-zoo-text">{activeMission.description}</p>
-
-                        {activeMission.isCompleted ? (
-                            <button
-                                onClick={() => completeMission(activeMission.id)}
-                                className="mt-2 w-full bg-zoo-green text-white font-black py-2 rounded-xl text-sm shadow-cartoon hover:shadow-cartoon-hover animate-pulse"
-                            >
-                                ODMĚNA: {activeMission.reward}
-                            </button>
-                        ) : (
-                            <div className="mt-2 bg-gray-100 rounded-full h-4 w-full overflow-hidden border border-gray-300">
-                                <div
-                                    className="h-full bg-zoo-blue"
-                                    style={{ width: `${Math.min(100, (placedAnimals.filter(p => p.animalType === activeMission.goalType).length / activeMission.goalAmount) * 100)}%` }}
-                                />
+                        <div className={clsx(
+                            "relative bg-white border-4 rounded-3xl p-4 shadow-xl max-w-[200px]",
+                            activeMission.isCompleted ? "border-zoo-yellow animate-bounce-short" : "border-zoo-blue"
+                        )}>
+                            <div className="absolute -top-4 -left-4 w-12 h-12 bg-zoo-blue rounded-full border-4 border-white flex items-center justify-center text-white font-black shadow-md">
+                                R
                             </div>
-                        )}
+                            <h3 className="font-black text-zoo-blue ml-6 text-sm uppercase">RYDER VOLÁ!</h3>
+                            <p className="font-bold text-sm leading-tight mt-1 text-zoo-text">{activeMission.description}</p>
+
+                            {activeMission.isCompleted ? (
+                                <button
+                                    onClick={() => completeMission(activeMission.id)}
+                                    className="mt-2 w-full bg-zoo-green text-white font-black py-2 rounded-xl text-sm shadow-cartoon hover:shadow-cartoon-hover animate-pulse"
+                                >
+                                    ODMĚNA: {activeMission.reward}
+                                </button>
+                            ) : (
+                                <div className="mt-2 bg-gray-100 rounded-full h-4 w-full overflow-hidden border border-gray-300">
+                                    <div
+                                        className="h-full bg-zoo-blue"
+                                        style={{ width: `${Math.min(100, (placedAnimals.filter(p => p.animalType === activeMission.goalType).length / activeMission.goalAmount) * 100)}%` }}
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Scrollable Game Area */}
             <div className="w-full h-full overflow-y-auto overflow-x-hidden flex flex-col items-center pt-28 pb-48 relative">
@@ -708,6 +729,8 @@ export default function Game() {
                     />
                 )
             }
+
+            <MathGateModal isOpen={isMathGateOpen} onClose={() => setIsMathGateOpen(false)} />
 
         </div >
     );
